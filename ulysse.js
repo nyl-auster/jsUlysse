@@ -1,49 +1,43 @@
 
 "use strict";
 
-var ulysse = {
+// all our framework will be hold in this variable.
+var ulysse = {};
 
-  components: {},
+// will contains all servicew defined by our library
+ulysse.services = {};
 
-  addAtom: function(component) {
-    if (typeof component.id === 'undefined') {
-      throw "Id of componend is undefined. All components needs an 'id' property to be rendered.";
-    }
-    this.components[component.id] = component;
-    return this;
-  },
+/*
+ ========================================
+ DEPENDENCY INJECTOR
+ Instanciate a service with dependencies
+ ========================================
+ */
 
-  renderAtom: function(id) {
+ulysse.getService = function(name) {
+  var dependenciesList = ulysse.services[name].dependencies;
+  var dependencies = [];
+  for (var i = 0; i < dependenciesList.length; i++) {
+    dependencies[dependenciesList[i]] = ulysse.getService(dependenciesList[i]);
+  }
+  return new ulysse.services[name].init(dependencies);
+};
 
-    var component = this.components[id];
-    var element = document.getElementById(component.htmlId);
+/*
+ =========================
+ HTTP SERVICE
+ create http requests
+ =========================
+ */
 
-    // if we find html tag
-    if (element) {
-      // render the template
-      if (typeof component.template !== 'undefined') {
+ulysse.services.http = {};
 
-        this.ajaxGet(component.template, function(response) {
-          var controllerResponse = component.controller();
-          element.innerHTML = response;
-        });
+ulysse.services.http.dependencies = [];
 
-      }
-      // or simply return controller result
-      else {
-        element.innerHTML = component.controller();
-      }
-    }
-  },
+ulysse.services.http.init = function() {
 
-  /**
-   * Get url content by http get
-   *
-   * @param url
-   * @param successCallback
-   */
-   ajaxGet: function(url, successCallback) {
-    
+  this.get = function(url, successCallback) {
+
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
     request.onreadystatechange = function() {
@@ -58,33 +52,76 @@ var ulysse = {
       }
     };
     request.send();
-  },
+  };
 
-  renderAtomsByPath: function(path) {
+};
+
+/*
+ =========================
+ ATOMS SERVICE
+ =========================
+ */
+
+ulysse.services.atoms = {};
+
+ulysse.services.atoms.dependencies = ['http'];
+
+ulysse.services.atoms.init = function(dependencies) {
+
+  this.http = dependencies.http;
+
+  this.components = {};
+
+  this.addAtom = function(component) {
+    if (typeof component.id === 'undefined') {
+      throw "Id of componend is undefined. All components needs an 'id' property to be rendered.";
+    }
+    this.components[component.id] = component;
+    return this;
+  };
+
+  this.renderAtom = function(id) {
+
+    var component = this.components[id];
+    var element = document.getElementById(component.htmlId);
+
+    // if we find html tag
+    if (element) {
+      // render the template
+      if (typeof component.template !== 'undefined') {
+
+        this.http.get(component.template, function(response) {
+          var controllerResponse = component.controller();
+          element.innerHTML = response;
+        });
+
+      }
+      // or simply return controller result
+      else {
+        element.innerHTML = component.controller();
+      }
+    }
+  };
+
+  this.renderAtomsByPath = function(path) {
     for (var id in this.components) {
       if (this.components[id].url === path) {
         this.renderAtom(id);
       }
     }
-  },
+  };
 
   /**
    * Extract current path from url. Example : for
    * "http://localhost/jsUlysse/#/hello-world" path is "/hello-world"
    * @returns {string|string}
    */
-  getCurrentPath: function() {
+  this.getCurrentPath = function() {
     return location.hash.slice(1) || '/';
-  },
+  };
 
-  listenUrlChanges: function() {
-
+  this.listenUrlChanges = function() {
     var that = this;
-
-    //console.log("listening");
-
-    // execute route on hash change.
-
     window.addEventListener("hashchange", function() {
       var currentPath = that.getCurrentPath();
       that.renderAtomsByPath(currentPath);
@@ -96,8 +133,8 @@ var ulysse = {
       that.renderAtomsByPath(currentPath);
     });
 
-  }
+  };
+
+  this.listenUrlChanges();
 
 };
-
-ulysse.listenUrlChanges();

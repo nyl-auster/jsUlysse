@@ -1,6 +1,8 @@
 "use strict";
 
-ulysse
+var atoms = new ulysse.getService('atoms');
+
+atoms
 
   .addAtom({
     url : '/',
