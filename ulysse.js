@@ -4,7 +4,7 @@
 // all our framework will be hold in this variable.
 var ulysse = {};
 
-// will contains all servicew defined by our library
+// will contains all services defined by our library
 ulysse.services = {};
 
 /*
@@ -23,6 +23,14 @@ ulysse.getService = function(name) {
   return new ulysse.services[name].init(dependencies);
 };
 
+
+/**
+ * SERVICES
+ *
+ * A service MUST contain the following keys :
+ * - dependencies : array of services name required by this service
+ * - init : service constructor function
+ */
 /*
  =========================
  HTTP SERVICE
@@ -56,6 +64,7 @@ ulysse.services.http.init = function() {
 
 };
 
+
 /*
  =========================
  ATOMS SERVICE
@@ -83,7 +92,8 @@ ulysse.services.atoms.init = function(dependencies) {
   this.renderAtom = function(id) {
 
     var component = this.components[id];
-    var element = document.getElementById(component.htmlId);
+    var element = document.querySelector(component.querySelector);
+
 
     // if we find html tag
     if (element) {
